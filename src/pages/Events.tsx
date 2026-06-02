@@ -18,6 +18,8 @@ interface IEvent {
   judgingCriteria?: string[]; // It's optional as older events might not have it
 }
 
+import { EVENTS_API_URL } from '../config/api';
+
 const Events = () => {
   const [events, setEvents] = useState<IEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -27,8 +29,7 @@ const Events = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await axios.get('https://discipl-server.onrender.com/api/events');  // Used for github deployment
-        //const response = await axios.get('http://localhost:8172/api/events');
+        const response = await axios.get(EVENTS_API_URL);
         setEvents(response.data);
       } catch (err) {
         setError('Failed to load events. Please try again later.');

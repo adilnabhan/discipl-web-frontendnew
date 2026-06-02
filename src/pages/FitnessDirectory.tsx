@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
-import { MapPin, Star, Phone, Clock, Dumbbell, Users, Filter, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Star, Phone, Clock, Dumbbell, Users, Filter, Search, Loader } from 'lucide-react';
+import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
+
+interface GymItem {
+  id: number;
+  name: string;
+  description: string;
+  address: string;
+  phone: string;
+  rating: number;
+  reviews: number;
+  category: string;
+  amenities: string[];
+  hours: string;
+  membership: string;
+  image: string;
+}
+
+import { useNavigate } from 'react-router-dom';
 
 const FitnessDirectory = () => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [gyms, setGyms] = useState<GymItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fitnessDirectories = [
+  const defaultMockGyms: GymItem[] = [
     {
       id: 1,
       name: "Iron Paradise Gym",
@@ -17,8 +40,8 @@ const FitnessDirectory = () => {
       category: "Gym",
       amenities: ["Free Weights", "Cardio Equipment", "Personal Training", "Locker Rooms"],
       hours: "5:00 AM - 11:00 PM",
-      membership: "₹49/month",
-      image: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=400"
+      membership: "₹2,499/mo",
+      image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=600"
     },
     {
       id: 2,
@@ -31,8 +54,8 @@ const FitnessDirectory = () => {
       category: "Yoga",
       amenities: ["Yoga Classes", "Meditation Room", "Massage Therapy", "Wellness Workshops"],
       hours: "6:00 AM - 9:00 PM",
-      membership: "₹79/month",
-      image: "https://images.pexels.com/photos/3822622/pexels-photo-3822622.jpeg?auto=compress&cs=tinysrgb&w=400"
+      membership: "₹1,899/mo",
+      image: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&q=80&w=600"
     },
     {
       id: 3,
@@ -45,85 +68,62 @@ const FitnessDirectory = () => {
       category: "CrossFit",
       amenities: ["CrossFit Classes", "Olympic Lifting", "Metabolic Conditioning", "Nutrition Coaching"],
       hours: "5:30 AM - 10:00 PM",
-      membership: "₹129/month",
-      image: "https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 4,
-      name: "AquaFit Swimming Center",
-      description: "Olympic-sized pool with swimming lessons, water aerobics, and competitive training programs for all ages.",
-      address: "321 Splash Boulevard, Riverside",
-      phone: "(555) 234-5678",
-      rating: 4.6,
-      reviews: 203,
-      category: "Swimming",
-      amenities: ["Olympic Pool", "Kids Pool", "Swimming Lessons", "Water Aerobics"],
-      hours: "5:00 AM - 10:00 PM",
-      membership: "₹65/month",
-      image: "https://images.pexels.com/photos/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 5,
-      name: "FlexFit 24/7",
-      description: "Round-the-clock access to modern fitness equipment and group classes. Perfect for busy schedules and night owls.",
-      address: "654 Fitness Way, Central Plaza",
-      phone: "(555) 345-6789",
-      rating: 4.5,
-      reviews: 312,
-      category: "Gym",
-      amenities: ["24/7 Access", "Group Classes", "Cardio Theater", "Smoothie Bar"],
-      hours: "24/7",
-      membership: "₹39/month",
-      image: "https://images.pexels.com/photos/1954524/pexels-photo-1954524.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 6,
-      name: "Dance Revolution Studio",
-      description: "Dynamic dance fitness classes including Zumba, hip-hop, ballet, and contemporary dance for all skill levels.",
-      address: "987 Rhythm Street, Arts District",
-      phone: "(555) 567-8901",
-      rating: 4.8,
-      reviews: 178,
-      category: "Dance",
-      amenities: ["Dance Classes", "Private Lessons", "Performance Opportunities", "Mirrored Studios"],
-      hours: "9:00 AM - 10:00 PM",
-      membership: "₹55/month",
-      image: "https://images.pexels.com/photos/3775593/pexels-photo-3775593.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 7,
-      name: "Peak Performance Athletics",
-      description: "Sports-specific training facility with professional coaches for athletes and sports enthusiasts of all levels.",
-      address: "147 Champion Drive, Sports Complex",
-      phone: "(555) 678-9012",
-      rating: 4.9,
-      reviews: 134,
-      category: "Sports Training",
-      amenities: ["Sports Training", "Performance Testing", "Recovery Center", "Nutrition Planning"],
-      hours: "6:00 AM - 9:00 PM",
-      membership: "₹99/month",
-      image: "https://images.pexels.com/photos/2827400/pexels-photo-2827400.jpeg?auto=compress&cs=tinysrgb&w=400"
-    },
-    {
-      id: 8,
-      name: "Mindful Movement Pilates",
-      description: "Classical and contemporary Pilates instruction focusing on core strength, flexibility, and body alignment.",
-      address: "258 Balance Street, Wellness Quarter",
-      phone: "(555) 789-0123",
-      rating: 4.7,
-      reviews: 167,
-      category: "Pilates",
-      amenities: ["Pilates Classes", "Reformer Training", "Mat Classes", "Physical Therapy"],
-      hours: "7:00 AM - 8:00 PM",
-      membership: "₹89/month",
-      image: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=400"
+      membership: "₹3,200/mo",
+      image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=600"
     }
   ];
 
+  useEffect(() => {
+    const fetchGyms = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/fitnesscenter/gym/list/`);
+        // The API returns paginated results under "results" or direct array
+        const list = response.data.results || response.data;
+        if (Array.isArray(list) && list.length > 0) {
+          const mapped = list.map((g: any) => {
+            const city = g.location?.city || '';
+            const state = g.location?.state || '';
+            const building = g.location?.building_name || '';
+            const addr = [building, city, state].filter(Boolean).join(', ') || 'Bangalore, India';
+            
+            return {
+              id: g.id,
+              name: g.name,
+              description: g.description || 'Premium fitness arena, fully customized for top-tier training performance.',
+              address: addr,
+              phone: g.phone_number || '+91 99000 12345',
+              rating: Number(g.average_rating) || 4.8,
+              reviews: g.review_count || 12,
+              category: g.categories?.[0]?.name || 'Gym',
+              amenities: ["Free Weights", "Cardio Units", "Trainer Guided"],
+              hours: "6:00 AM - 10:00 PM",
+              membership: "₹2,499/mo",
+              image: g.logo || "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=600"
+            };
+          });
+          setGyms(mapped);
+        } else {
+          // Fallback if the database has no gyms yet
+          setGyms(defaultMockGyms);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch from Django API, falling back to mock dataset:", err);
+        setGyms(defaultMockGyms);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGyms();
+  }, []);
+
   const categories = ['All', 'Gym', 'Yoga', 'CrossFit', 'Swimming', 'Dance', 'Sports Training', 'Pilates'];
 
-  const filteredDirectories = fitnessDirectories.filter(directory => {
-    const matchesCategory = selectedCategory === 'All' || directory.category === selectedCategory;
+  const filteredDirectories = gyms.filter(directory => {
+    const matchesCategory = selectedCategory === 'All' || 
+      directory.category.toLowerCase() === selectedCategory.toLowerCase() ||
+      (selectedCategory === 'Gym' && (directory.category.toLowerCase() === 'gym' || directory.category.toLowerCase() === 'strength'));
+      
     const matchesSearch = searchTerm === '' || 
       directory.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       directory.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -217,7 +217,12 @@ const FitnessDirectory = () => {
       {/* Directory Grid */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {filteredDirectories.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Loader className="w-12 h-12 text-red-500 animate-spin mb-4" />
+              <p className="text-gray-600 font-medium">Fetching fitness centers from database...</p>
+            </div>
+          ) : filteredDirectories.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
                 <Dumbbell className="w-16 h-16 mx-auto" />
@@ -308,7 +313,10 @@ const FitnessDirectory = () => {
                   </div>
                   
                   <div className="flex gap-2">
-                    <button className="flex-1 bg-red-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-red-600 transition-colors duration-200 text-sm">
+                    <button
+                      onClick={() => navigate(`/gym/${directory.id}`)}
+                      className="flex-1 bg-red-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-red-600 transition-colors duration-200 text-sm"
+                    >
                       View Details
                     </button>
                     <button className="px-4 py-2 border border-red-500 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-colors duration-200 text-sm">
